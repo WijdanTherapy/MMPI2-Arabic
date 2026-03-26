@@ -12,12 +12,10 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table,
-    TableStyle, HRFlowable, Image as RLImage, PageBreak, Drawing
+    TableStyle, HRFlowable, Image as RLImage, PageBreak
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.graphics.shapes import Drawing as RLDrawing, Line, Rect, String, Circle
-from reportlab.graphics.charts.lineplots import LinePlot
-from reportlab.graphics import renderPDF
+from reportlab.graphics.shapes import Drawing, Line, Rect, String, Circle
 
 # Word doc
 from docx import Document as DocxDocument
