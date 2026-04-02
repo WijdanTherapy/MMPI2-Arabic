@@ -61,6 +61,10 @@ THERAPIST_EMAIL = "Wijdan.psyc@gmail.com"
 LOGO_FILE       = "logo.png"
 ITEMS_PER_PAGE  = 50
 
+THERAPIST_NAME  = "Yusuf Abdelatti"
+THERAPIST_TITLE = "Psychotherapist"
+CENTER_NAME     = "Wijdan Therapy Center"
+
 # ══════════════════════════════════════════════════════════════
 #  SCORING ENGINE (unchanged)
 # ══════════════════════════════════════════════════════════════
@@ -268,7 +272,9 @@ def check_validity(scores):
 #  GROQ REPORT
 # ══════════════════════════════════════════════════════════════
 
-def generate_report(client_name, age, gender, scores, validity):
+def generate_report(client_name, age, gender, scores, validity,
+                    dob="Not provided", nationality="Not provided",
+                    referral="Not provided"):
     clinical = {
         "Hs (Scale 1)": scores["Hs_T"], "D (Scale 2)": scores["D_T"],
         "Hy (Scale 3)": scores["Hy_T"], "Pd (Scale 4)": scores["Pd_T"],
@@ -286,10 +292,15 @@ def generate_report(client_name, age, gender, scores, validity):
     prompt = f"""You are a licensed clinical psychologist writing a confidential MMPI-2 assessment report.
 
 CLIENT: {client_name}
+DATE OF BIRTH: {dob}
 AGE: {age}
 GENDER: {gender}
+NATIONALITY: {nationality}
+REFERRAL SOURCE: {referral}
+TEST LANGUAGE: Arabic
 ASSESSMENT: Minnesota Multiphasic Personality Inventory-2 (MMPI-2)
 DATE: {datetime.datetime.now().strftime("%B %d, %Y")}
+REPORT PREPARED BY: {THERAPIST_NAME}, {THERAPIST_TITLE} — {CENTER_NAME}
 
 VALIDITY SCALE SUMMARY:
 VRIN T={scores["VRIN_T"]} | TRIN T={scores["TRIN_T"]} | F T={scores["F_T"]} | Fb T={scores["Fb_T"]}
@@ -418,7 +429,8 @@ def build_profile_chart(scores, width_pts=480, height_pts=160):
 #  PDF CREATION
 # ══════════════════════════════════════════════════════════════
 
-def create_pdf(path, client_name, age, gender, scores, validity, report_text):
+def create_pdf(path, client_name, age, gender, scores, validity, report_text,
+               dob="Not provided", nationality="Not provided", referral="Not provided"):
     DARK   = colors.HexColor("#1C1917")
     WARM   = colors.HexColor("#6B5B45")
     LIGHT  = colors.HexColor("#F7F3EE")
@@ -464,16 +476,23 @@ def create_pdf(path, client_name, age, gender, scores, validity, report_text):
         HRFlowable(width="100%", thickness=1, color=BORDER), Spacer(1, 0.3*cm),
     ]
 
-    # Client info
+    # Client info — expanded 4-row table
     info_data = [
         [Paragraph("<b>Client</b>", small_s), Paragraph(client_name, body_s),
          Paragraph("<b>Age</b>", small_s), Paragraph(str(age), body_s),
          Paragraph("<b>Gender</b>", small_s), Paragraph(gender, body_s)],
-        [Paragraph("<b>Assessment</b>", small_s), Paragraph("MMPI-2 (567 items)", body_s),
-         Paragraph("<b>Date</b>", small_s), Paragraph(date_str, body_s),
-         Paragraph("<b>Welsh Code</b>", small_s), Paragraph(scores["welsh_code"], body_s)],
+        [Paragraph("<b>Date of Birth</b>", small_s), Paragraph(dob, body_s),
+         Paragraph("<b>Nationality</b>", small_s), Paragraph(nationality, body_s),
+         Paragraph("<b>Test Language</b>", small_s), Paragraph("Arabic", body_s)],
+        [Paragraph("<b>Referral Source</b>", small_s), Paragraph(referral, body_s),
+         Paragraph("<b>Assessment</b>", small_s), Paragraph("MMPI-2 (567 items)", body_s),
+         Paragraph("<b>Date</b>", small_s), Paragraph(date_str, body_s)],
+        [Paragraph("<b>Welsh Code</b>", small_s), Paragraph(scores["welsh_code"], body_s),
+         Paragraph("<b>Prepared by</b>", small_s),
+         Paragraph(f"{THERAPIST_NAME}, {THERAPIST_TITLE}", body_s),
+         Paragraph("<b>Center</b>", small_s), Paragraph(CENTER_NAME, body_s)],
     ]
-    it = Table(info_data, colWidths=[2.5*cm, 4.5*cm, 1.5*cm, 2*cm, 2.5*cm, 4*cm])
+    it = Table(info_data, colWidths=[2.8*cm, 4.2*cm, 2.5*cm, 3.2*cm, 2.5*cm, 2.0*cm])
     it.setStyle(TableStyle([
         ("BACKGROUND",(0,0),(-1,-1),LIGHT), ("BOX",(0,0),(-1,-1),0.5,BORDER),
         ("INNERGRID",(0,0),(-1,-1),0.3,BORDER),
@@ -717,11 +736,47 @@ def create_pdf(path, client_name, age, gender, scores, validity, report_text):
     story += [
         Spacer(1, 0.5*cm),
         HRFlowable(width="100%", thickness=0.5, color=BORDER),
-        Spacer(1, 0.2*cm),
-        Paragraph("This report is strictly confidential and intended solely for the treating clinician. "
-                  "Not to be shared without explicit written consent. "
-                  "Report by WIJDAN THERAPY.", footer_s),
+        Spacer(1, 0.3*cm),
     ]
+
+    # Professional sign-off block
+    sign_data = [[]]
+    if os.path.exists(LOGO_FILE):
+        try:
+            sign_logo = RLImage(LOGO_FILE, width=2.2*cm, height=1.1*cm)
+            sign_data = [[sign_logo,
+                          Paragraph(
+                              f"<b>{CENTER_NAME}</b><br/>"
+                              f"{THERAPIST_NAME}<br/>"
+                              f"<i>{THERAPIST_TITLE}</i>",
+                              ParagraphStyle("sg", fontName="Helvetica", fontSize=8,
+                                             textColor=WARM, leading=12)),
+                          Paragraph(
+                              "This report is strictly confidential and intended solely "
+                              "for the treating clinician. Not to be shared without "
+                              "explicit written consent.",
+                              ParagraphStyle("fc", fontName="Helvetica-Oblique", fontSize=7,
+                                             textColor=WARM, leading=10))]]
+        except: pass
+
+    if sign_data and sign_data[0]:
+        sign_tbl = Table(sign_data, colWidths=[2.5*cm, 5.5*cm, 9.2*cm])
+        sign_tbl.setStyle(TableStyle([
+            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+            ("LEFTPADDING",(0,0),(-1,-1),4),
+            ("RIGHTPADDING",(0,0),(-1,-1),4),
+            ("TOPPADDING",(0,0),(-1,-1),4),
+            ("BOTTOMPADDING",(0,0),(-1,-1),4),
+            ("LINEAFTER",(0,0),(0,0),0.5,BORDER),
+            ("LINEAFTER",(1,0),(1,0),0.5,BORDER),
+        ]))
+        story.append(sign_tbl)
+    else:
+        story.append(Paragraph(
+            f"{CENTER_NAME}  ·  {THERAPIST_NAME}, {THERAPIST_TITLE}  ·  Confidential",
+            ParagraphStyle("fc2", fontName="Helvetica-Oblique", fontSize=7,
+                           textColor=WARM, leading=10, alignment=TA_CENTER)))
+
     doc.build(story)
 
 # ══════════════════════════════════════════════════════════════
@@ -1028,6 +1083,9 @@ else:
     if "client_name_saved"  not in st.session_state: st.session_state.client_name_saved = ""
     if "age_saved"          not in st.session_state: st.session_state.age_saved = ""
     if "gender_saved"       not in st.session_state: st.session_state.gender_saved = "— اختر —"
+    if "dob_saved"          not in st.session_state: st.session_state.dob_saved = ""
+    if "nationality_saved"  not in st.session_state: st.session_state.nationality_saved = ""
+    if "referral_saved"     not in st.session_state: st.session_state.referral_saved = ""
     if "access_granted"     not in st.session_state: st.session_state.access_granted = False
 
     # ── Access code gate ───────────────────────────────────────
@@ -1108,15 +1166,26 @@ else:
                 st.session_state.client_name_saved = client_name
                 if any('\u0600' <= c <= '\u06ff' for c in (client_name or "")):
                     st.markdown('<div style="color:#D9534F;font-size:.82rem;direction:rtl;">⚠ يرجى كتابة اسمك باللغة الإنجليزية فقط.</div>', unsafe_allow_html=True)
+                dob = st.text_input("تاريخ الميلاد", placeholder="DD/MM/YYYY",
+                                    value=st.session_state.dob_saved, key="dob_input")
+                st.session_state.dob_saved = dob
             with col2:
                 age = st.text_input("العمر", placeholder="مثال: ٣٥",
                                     value=st.session_state.age_saved, key="age_input")
                 st.session_state.age_saved = age
+                nationality = st.text_input("الجنسية", placeholder="مثال: مصري",
+                                            value=st.session_state.nationality_saved,
+                                            key="nationality_input")
+                st.session_state.nationality_saved = nationality
             with col3:
                 gender_opts = ["— اختر —", "ذكر", "أنثى"]
                 gender_idx  = gender_opts.index(st.session_state.gender_saved) if st.session_state.gender_saved in gender_opts else 0
                 gender_ar   = st.selectbox("الجنس", gender_opts, index=gender_idx, key="gender_input")
                 st.session_state.gender_saved = gender_ar
+                referral = st.text_input("مصدر الإحالة", placeholder="مثال: د. أحمد حسن",
+                                         value=st.session_state.referral_saved,
+                                         key="referral_input")
+                st.session_state.referral_saved = referral
 
         # Questions for current page
         start_idx = cp * ITEMS_PER_PAGE
@@ -1196,10 +1265,14 @@ else:
                 with st.spinner("جاري معالجة إجاباتك..."):
                     scores  = compute_all_scores(st.session_state.responses, gender_en)
                     validity = check_validity(scores)
+                    dob_v         = st.session_state.get("dob_saved","") or "Not provided"
+                    nationality_v = st.session_state.get("nationality_saved","") or "Not provided"
+                    referral_v    = st.session_state.get("referral_saved","") or "Not provided"
                     report  = generate_report(
                         client_name or "Anonymous",
                         st.session_state.get("age_saved","") or "N/A",
-                        gender_en, scores, validity
+                        gender_en, scores, validity,
+                        dob=dob_v, nationality=nationality_v, referral=referral_v
                     )
                     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                     sn = (client_name or "anonymous").replace(" ","_").lower()
@@ -1212,7 +1285,8 @@ else:
                     try:
                         create_pdf(pdf_path, client_name or "Anonymous",
                                    st.session_state.get("age_saved","") or "N/A",
-                                   gender_en, scores, validity, report)
+                                   gender_en, scores, validity, report,
+                                   dob=dob_v, nationality=nationality_v, referral=referral_v)
                     except Exception as e:
                         st.error(f"خطأ في إنشاء PDF: {e}"); st.stop()
 
