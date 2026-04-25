@@ -390,9 +390,9 @@ def generate_report(client_name, age, gender, scores, validity,
     suicidal_count = len(scores.get("critical_kb", {}).get("Depressed Suicidal Ideation", []))
     assault_count  = len(scores.get("critical_kb", {}).get("Threatened Assault", []))
 
-    prompt = f"""You are a licensed clinical psychologist writing a confidential MMPI-2 assessment report in Arabic.
+    prompt = f"""You are a licensed clinical psychologist writing a confidential MMPI-2 assessment report in English.
 You must follow the interpretation rules below EXACTLY. These rules are authoritative and override any general knowledge.
-Write the entire report in formal Arabic. Use proper clinical Arabic terminology throughout.
+Write the entire report in formal English. Do not use any Arabic words or phrases anywhere in the report.
 
 ═══════════════════════════════════════════════════════
 MANDATORY INTERPRETATION RULES (follow precisely)
@@ -567,7 +567,7 @@ CRITICAL ITEMS ENDORSED:
 REPORT INSTRUCTIONS
 ═══════════════════════════════════════════════════════
 
-Write a comprehensive professional MMPI-2 assessment report ENTIRELY IN ARABIC with exactly these sections:
+Write a comprehensive professional MMPI-2 assessment report ENTIRELY IN ENGLISH with exactly these sections:
 
 SECTION A — VALIDITY AND RESPONSE STYLE
 Discuss all validity indicators using the rules above. State clearly whether the protocol is interpretable.
@@ -599,8 +599,9 @@ Evidence-based treatment recommendations. Note prognosis.
 SECTION H — SUMMARY
 One concise paragraph. Include any risk alerts prominently.
 
-Use formal clinical Arabic language. Reference specific T-scores throughout.
-Label each section exactly as above. Do not reproduce the interpretation rules verbatim."""
+Use formal clinical English language. Reference specific T-scores throughout.
+Label each section exactly as above. Do not reproduce the interpretation rules verbatim.
+IMPORTANT: The entire report must be written in English only. Do not include any Arabic text."""
 
     api_key = st.secrets.get("GROQ_API_KEY", "")
     if not api_key:
@@ -745,7 +746,7 @@ def create_pdf(path, client_name, age, gender, scores, validity, report_text,
          Paragraph("<b>Gender</b>", small_s), Paragraph(gender, body_s)],
         [Paragraph("<b>Date of Birth</b>", small_s), Paragraph(dob, body_s),
          Paragraph("<b>Nationality</b>", small_s), Paragraph(nationality, body_s),
-         Paragraph("<b>Test Language</b>", small_s), Paragraph("Arabic", body_s)],
+         Paragraph("<b>Test Language</b>", small_s), Paragraph("English", body_s)],
         [Paragraph("<b>Referral Source</b>", small_s), Paragraph(referral, body_s),
          Paragraph("<b>Assessment</b>", small_s), Paragraph("MMPI-2 (567 items)", body_s),
          Paragraph("<b>Date</b>", small_s), Paragraph(date_str, body_s)],
